@@ -1,27 +1,40 @@
 import { Response } from 'express';
 import httpStatus from 'http-status';
 import { AuthenticatedRequest } from '@/middlewares';
-import hotelsService from '@/services/hotels-service';
+import hotelService from '@/services/hotels-service';
 
-export async function findHotels(req: AuthenticatedRequest, res: Response) {
-  const { userId } = req as { userId: number };
+export async function getHotels(req: AuthenticatedRequest, res: Response) {
+  const userId = req.userId;
+
   try {
-    const [hotels] = await hotelsService.findHotels(userId);
-    if (!hotels) throw new Error();
-    return res.status(httpStatus.OK).send(hotels);
+    const hotels = await hotelService.getHotels(userId);
+    res.send(hotels).status(200);
   } catch (error) {
-    return res.status(httpStatus.NOT_FOUND).send({});
+    if (error.name === 'NotFoundError') {
+      return res.sendStatus(httpStatus.NOT_FOUND);
+    } else if (error.name === 'PaymentError') {
+      return res.sendStatus(httpStatus.PAYMENT_REQUIRED);
+    } else {
+      return res.sendStatus(httpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 }
 
-export async function findHotelRooms(req: AuthenticatedRequest, res: Response) {
-  const { userId } = req as { userId: number };
-  const { hotelId } = req.query as { hotelId: string };
+export async function getHotelById(req: AuthenticatedRequest, res: Response) {
+  const { id } = req.params;
+  const hotelId = parseInt(id);
+  const userId = req.userId;
+
   try {
-    const hotelRooms = await hotelsService.findHotelRooms(userId, +hotelId);
-    if (!hotelRooms) throw new Error();
-    return res.status(httpStatus.OK).send(hotelRooms);
+    const result = await hotelService.getHotelById(hotelId, userId);
+    return res.send(result).status(200);
   } catch (error) {
-    return res.status(httpStatus.NOT_FOUND).send({});
+    if (error.name === 'NotFoundError') {
+      return res.sendStatus(httpStatus.NOT_FOUND);
+    } else if (error.name === 'PaymentError') {
+      return res.sendStatus(httpStatus.PAYMENT_REQUIRED);
+    } else {
+      return res.sendStatus(httpStatus.INTERNAL_SERVER_ERROR);
+    }
   }
 }

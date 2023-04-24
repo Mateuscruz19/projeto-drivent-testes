@@ -1,57 +1,70 @@
+import { Ticket, TicketStatus } from '@prisma/client';
 import { prisma } from '@/config';
 
-async function findTickets() {
-  return await prisma.ticket.findMany({
+async function findTicketTypes() {
+  return prisma.ticketType.findMany();
+}
+
+async function findTickeyById(ticketId: number) {
+  return prisma.ticket.findFirst({
+    where: {
+      id: ticketId,
+    },
+    include: {
+      Enrollment: true,
+    },
+  });
+}
+async function findTickeWithTypeById(ticketId: number) {
+  return prisma.ticket.findFirst({
+    where: {
+      id: ticketId,
+    },
     include: {
       TicketType: true,
     },
   });
 }
 
-async function findTicketById(ticketId: number) {
-  return await prisma.ticket.findFirst({ where: { id: ticketId } });
-}
-
 async function findTicketByEnrollmentId(enrollmentId: number) {
-  return await prisma.ticket.findFirst({ where: { enrollmentId } });
+  return prisma.ticket.findFirst({
+    where: {
+      enrollmentId,
+    },
+    include: {
+      TicketType: true, //inner join
+    },
+  });
 }
 
-async function findTicketsTypes() {
-  return await prisma.ticketType.findMany();
-}
-
-async function findTicketTypeById(ticketTypeId: number) {
-  return await prisma.ticketType.findFirst({ where: { id: ticketTypeId } });
-}
-
-type CreateTicketType = { ticketTypeId: number; enrollmentId: number };
-
-async function createTicket(ticket: CreateTicketType) {
-  return await prisma.ticket.create({
+async function createTicket(ticket: CreateTicketParams) {
+  return prisma.ticket.create({
     data: {
       ...ticket,
-      status: 'RESERVED',
     },
   });
 }
 
-async function updateTicketById(ticketId: number) {
-  return await prisma.ticket.update({
-    where: { id: ticketId },
+async function ticketProcessPayment(ticketId: number) {
+  return prisma.ticket.update({
+    where: {
+      id: ticketId,
+    },
     data: {
-      status: 'PAID',
+      status: TicketStatus.PAID,
     },
   });
 }
+
+export type CreateTicketParams = Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>;
 
 const ticketRepository = {
-  findTickets,
-  findTicketById,
+  findTicketTypes,
   findTicketByEnrollmentId,
-  findTicketsTypes,
-  findTicketTypeById,
   createTicket,
-  updateTicketById,
+  findTickeyById,
+  findTickeWithTypeById,
+  ticketProcessPayment,
 };
 
 export default ticketRepository;
